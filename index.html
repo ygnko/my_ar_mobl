@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebXR Sofa</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@webxr/immersive-ar@latest"></script>
+</head>
+<body style="margin: 0; overflow: hidden;">
+    <h1 style="color: white; position: absolute; top: 20px; left: 20px;">AR Sofa Model</h1>
+    
+    <!-- دکمه برای شروع AR -->
+    <button id="enter-ar" style="position: absolute; top: 20px; right: 20px; background-color: #4CAF50; color: white; padding: 10px; font-size: 16px; border: none; border-radius: 5px;">مشاهده در واقعیت افزوده</button>
+
+    <script>
+        let scene, camera, renderer, controller, xrSession;
+
+        // Initialize WebXR
+        async function init() {
+            // Create a scene
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Set up lighting
+            const light = new THREE.AmbientLight(0xffffff, 1);
+            scene.add(light);
+
+            // Design the sofa using simple geometry
+            // Sofa Base
+            const baseGeometry = new THREE.BoxGeometry(1.5, 0.3, 0.8); // width, height, depth
+            const baseMaterial = new THREE.MeshBasicMaterial({ color: 0x2F4F4F }); // Dark blue color (Sofa base)
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.position.y = 0.15; // Slightly above the ground
+            scene.add(base);
+
+            // Sofa Backrest
+            const backrestGeometry = new THREE.BoxGeometry(1.5, 0.6, 0.3); // width, height, depth
+            const backrestMaterial = new THREE.MeshBasicMaterial({ color: 0x2F4F4F }); // Dark blue color
+            const backrest = new THREE.Mesh(backrestGeometry, backrestMaterial);
+            backrest.position.y = 0.45; // Placed on top of the base
+            backrest.position.z = -0.25; // Behind the base
+            scene.add(backrest);
+
+            // Sofa Armrests
+            const armrestGeometry = new THREE.BoxGeometry(0.3, 0.5, 0.3); // width, height, depth
+            const armrestMaterial = new THREE.MeshBasicMaterial({ color: 0x2F4F4F }); // Dark blue color
+            const armrestLeft = new THREE.Mesh(armrestGeometry, armrestMaterial);
+            armrestLeft.position.x = -0.75; // Left armrest
+            armrestLeft.position.y = 0.35;
+            armrestLeft.position.z = 0.35;
+            scene.add(armrestLeft);
+
+            const armrestRight = new THREE.Mesh(armrestGeometry, armrestMaterial);
+            armrestRight.position.x = 0.75; // Right armrest
+            armrestRight.position.y = 0.35;
+            armrestRight.position.z = 0.35;
+            scene.add(armrestRight);
+
+            // AR session will be started when the user clicks the button
+            document.getElementById('enter-ar').addEventListener('click', async () => {
+                await startAR();
+            });
+        }
+        async function startAR() {
+    if ('xr' in navigator) {
+        try {
+            const supported = await navigator.xr.isSessionSupported('immersive-ar');
+            if (supported) {
+                const session = await navigator.xr.requestSession('immersive-ar', {
+                    requiredFeatures: ['hit-test', 'viewer'],
+                    optionalFeatures: ['light-estimation']
+                });
+                xrSession = session;
+                renderer.xr.enabled = true;
+                session.requestReferenceSpace('local').then((refSpace) => {
+                    controller = renderer.xr.getController(0);
+                    scene.add(controller);
+                });
+
+                session.addEventListener('end', () => {
+                    xrSession = null;
+                });
+            } else {
+                alert('This device does not support immersive AR.');
+            }
+        } catch (error) {
+            console.error('Error starting AR session:', error);
+            alert('An error occurred while trying to start AR.');
+        }
+    } else {
+        alert('WebXR is not supported in this browser.');
+    }
+}
+
+        // Animation loop
+        function animate() {
+            if (xrSession) {
+                renderer.render(scene, camera);
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // Resize event
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        // Start the process
+        init().then(() => {
+            animate();
+        });
+    </script>
+</body>
+</html>
